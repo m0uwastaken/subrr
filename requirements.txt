@@ -1,0 +1,4 @@
+# numpy: OCR (subtítulos de imagen y texto grabado) · anthropic: solo para el motor Claude
+# Rangos compatibles (el Dockerfile usa Python 3.13). Para una imagen reproducible al byte, fija las versiones que te instale pip.
+numpy>=2.0,<3
+anthropic>=0.40,<1

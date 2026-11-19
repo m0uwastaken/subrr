@@ -1,0 +1,57 @@
+# Example: subrr + a local LibreTranslate as fallback engine.
+#
+# WARNING: do NOT expose subrr to the internet. It has no user accounts: anyone who can reach the web UI can change
+# its settings, and it holds your API keys. Keep it on your LAN / VPN (Tailscale, WireGuard…) or behind a reverse proxy
+# with authentication, and set SUBRR_PASSWORD below. See SECURITY.md.
+services:
+  subrr:
+    build: .                      # or: image: ghcr.io/m0uwastaken/subrr:latest
+    container_name: subrr
+    user: "1000:1000"             # same user that owns your media files
+    environment:
+      TZ: Europe/Madrid
+      # --- Security (recommended) ---
+      # SUBRR_PASSWORD: "change-me"           # HTTP Basic password for the web UI (/salud and the webhooks stay open)
+      # SUBRR_WEBHOOK_TOKEN: "a-long-random-string"   # token for the Sonarr/Radarr webhooks; if unset, one is generated
+      #                                                 # on first start and shown in Settings → Connections
+      # --- Optional: initial values; everything can be set (and overridden) in the web UI ---
+      SONARR_URL: http://sonarr:8989
+      SONARR_KEY: ""
+      RADARR_URL: http://radarr:7878
+      RADARR_KEY: ""
+      BAZARR_URL: http://bazarr:6767
+      BAZARR_KEY: ""
+      DEEPL_KEY: ""               # DeepL API Free: 500,000 characters/month for free
+      LIBRETRANSLATE_URL: http://libretranslate:5000
+    volumes:
+      - ./config:/config          # settings (contains API keys), state, cache
+      # Mount your media at the SAME path Sonarr/Radarr use. With the TRaSH-Guides layout that is /data
+      # (e.g. /data/media/tv, /data/media/movies). Same path = no path mapping needed. Use the same host folder as
+      # Sonarr/Radarr, and keep the same parent folder so hard links keep working.
+      - /path/to/data:/data
+    ports:
+      - "127.0.0.1:3007:3007"     # only this machine. Use "3007:3007" to reach it from your LAN (and set SUBRR_PASSWORD)
+    # To let Sonarr/Radarr/Bazarr reach subrr as http://subrr:3007 (webhooks) and subrr reach them as http://sonarr:8989,
+    # all of them must share a Docker network. Find the one your *arr apps use (docker network ls) and uncomment:
+    # networks:
+    #   - arr
+    restart: unless-stopped
+
+  libretranslate:                 # optional, free and local; used as fallback
+    image: libretranslate/libretranslate:v1.9.6
+    container_name: libretranslate
+    environment:
+      LT_LOAD_ONLY: en,es,fr,it,pt,de   # source and target languages you need
+      LT_DISABLE_WEB_UI: "true"
+    volumes:
+      - ./libretranslate:/home/libretranslate/.local   # downloaded models (~1-2 GB)
+    # networks:
+    #   - arr
+    restart: unless-stopped
+
+# Uncomment together with the "networks:" lines above. Replace "arr" with the real network name of your *arr stack
+# (e.g. the "default" network of its compose project: <project>_default), or put subrr in that same compose file instead.
+# networks:
+#   arr:
+#     external: true
+#     name: <your-arr-network>

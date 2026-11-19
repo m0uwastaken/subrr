@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+config/
+libretranslate/
+.env
+*.env
+.env.*
+*.antes-*
+*.obsoleto
+docker-compose.yml
